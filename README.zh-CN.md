@@ -57,12 +57,12 @@
 - [适配范围](#适配范围)
 - [安装](#安装)
 - [换机 / 重装](#换机--重装)
+- [卸载](#卸载)
 - [更新](#更新)
 - [界面](#界面预览)
 - [使用](#使用)
 - [工作原理](#工作原理)
 - [还原](#还原)
-- [更新](#更新)
 
 ---
 
@@ -132,7 +132,7 @@ cd dsh-purge
 node install.mjs
 ```
 
-脚本零依赖，自动做完这些事：
+在任意目录执行都可以（脚本按自身位置定位仓库）。脚本零依赖，自动做完这些事：
 
 - 找到 `$DSH_HOME/profiles/*`（默认 `~/.dsh`，可用 `--dsh-home` 指定）
 - 把 profile 里 `dependencies["dsh-purge"]` 写成 `link:<本仓库绝对路径>`
@@ -148,6 +148,13 @@ node install.mjs
 | `--copy` | 复制一份进 profile，不依赖仓库路径（仓库可随意移动/删除） |
 | `--uninstall` | 撤掉依赖、bundles 条目与 `node_modules/dsh-purge` |
 | `--dsh-home /path/.dsh` | DSH 主目录不在默认位置时用 |
+
+也可以走仓库自带的命令行入口，参数一样：
+
+```sh
+node bin/dsh-purge.js --install
+node bin/dsh-purge.js --install --check
+```
 
 接成功的标志：
 

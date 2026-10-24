@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
+import { spawnSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import * as core from "../lib/core.js";
 import * as rules from "../lib/rules.js";
+
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const args = process.argv.slice(2);
 
@@ -36,10 +41,23 @@ function printStatus(state) {
 }
 
 async function main() {
-  const mode = args.find((a) => ["--apply", "--revert", "--uninstall", "--status", "--edit", "--help"].includes(a));
+  const mode = args.find((a) =>
+    ["--install", "--apply", "--revert", "--uninstall", "--status", "--edit", "--help"].includes(a),
+  );
+
+  // 接入本机 profile：转调 install.mjs，参数原样透传（--profile / --check / --copy / --dsh-home）
+  if (mode === "--install") {
+    const passthrough = args.filter((a) => a !== "--install");
+    const r = spawnSync(process.execPath, [path.join(REPO_ROOT, "install.mjs"), ...passthrough], {
+      stdio: "inherit",
+    });
+    process.exit(typeof r.status === "number" ? r.status : 1);
+  }
 
   if (mode === "--help" || args.includes("-h")) {
     console.log(`dsh-purge 用法:
+  dsh-purge --install    接入本机 profile（等价于 node install.mjs）
+                         可加 --profile desktop|web、--check、--copy、--uninstall、--dsh-home DIR
   dsh-purge --status     显示状态
   dsh-purge --apply      应用全部清洗（提示词+代码+shim+override）
   dsh-purge --revert     回滚还原

@@ -57,6 +57,7 @@ This repository is a private working copy. Not distributed, not resold, not oper
 - [Supported hosts](#supported-hosts)
 - [Install](#install)
 - [New machine / wiped machine](#new-machine--wiped-machine)
+- [Uninstall](#uninstall)
 - [Update](#update)
 - [Preview](#preview)
 - [Usage](#usage)
@@ -133,7 +134,7 @@ cd dsh-purge
 node install.mjs
 ```
 
-Zero dependencies. It will:
+Run it from anywhere; it locates the repo from its own path. Zero dependencies. It will:
 
 - find every `$DSH_HOME/profiles/*` (`~/.dsh` by default, `--dsh-home` to override)
 - set `dependencies["dsh-purge"] = "link:<absolute path to this clone>"`
@@ -147,6 +148,13 @@ Zero dependencies. It will:
 | `--copy` | copy the package into the profile instead of linking (repo can then be moved or deleted) |
 | `--uninstall` | drop the dependency, the bundle entry, and `node_modules/dsh-purge` |
 | `--dsh-home /path/.dsh` | when DSH home is not in the default location |
+
+The bundled CLI exposes the same entry point, same flags:
+
+```sh
+node bin/dsh-purge.js --install
+node bin/dsh-purge.js --install --check
+```
 
 Verify:
 
