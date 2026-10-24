@@ -35,7 +35,8 @@
     "LICENSE",
     "NOTICE",
     "scripts/render-cards.mjs",
-    "scripts/ungate.mjs"
+    "scripts/ungate.mjs",
+    "scripts/patch-inject.mjs"
   ],
   "scripts": {
     "embed-prompt": "node scripts/embed-default-prompt.mjs",
