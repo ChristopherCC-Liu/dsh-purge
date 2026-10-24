@@ -34,7 +34,8 @@
     "README.zh-CN.md",
     "LICENSE",
     "NOTICE",
-    "scripts/render-cards.mjs"
+    "scripts/render-cards.mjs",
+    "scripts/ungate.mjs"
   ],
   "scripts": {
     "embed-prompt": "node scripts/embed-default-prompt.mjs",

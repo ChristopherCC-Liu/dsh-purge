@@ -180,6 +180,37 @@ Nothing is fetched from a package registry, a plugin market, or any third-party 
 
 With `--copy` the plugin lives entirely inside the profile, so the clone can be deleted afterwards.
 
+### Region gate (off by default in this repo)
+
+`installRegionGate` in `lib/net-scope.js` hooks `agent/pre-step` when the plugin starts (1.1.78 also hooks `tools/pre-execute`). If a turn contains an attack keyword (pentest / intrusion / privesc / webshell / port scan / pwn…) **and** a public host, it fabricates an assistant message reading `不行，这是严令禁止的` and `parkDenial` swallows the whole turn.
+
+What it actually blocks is not just model output:
+
+- a parent agent dispatching a subtask always puts the target host and action words in the brief, so **the child is killed on its first step**
+- the child's closing message is that refusal; the parent only sees `finished`, with no error anywhere
+- the surface symptom is "the task is running" while not a single subtask executed
+
+This repo leaves the arming step off by default. The detection path is untouched (`isAttackTask`, `isCheatTask`, `publicHostHit`, `taskTargetHit`, the `DENIAL` text, bank/exchange tables, DNS resolution checks).
+
+| You want | Do this |
+| --- | --- |
+| Default (no gating) | nothing |
+| Restore upstream | `echo '{"regionGate": true}' > "$DSH_HOME/dsh-purge/net-gate.json"`, or `DSH_PURGE_REGION_GATE=1` before start |
+| Force off | `DSH_PURGE_REGION_GATE=0`, highest priority |
+
+Add or remove the switch on **any version** of the package:
+
+```sh
+node scripts/ungate.mjs                    # locate the plugin under the local profile
+node scripts/ungate.mjs --dir <plugin dir>  # explicit directory (an unpacked source tree works)
+node scripts/ungate.mjs --check            # report enabled / armed, write nothing
+node scripts/ungate.mjs --revert           # remove the switch, back to stock behaviour
+```
+
+Idempotent: already-patched files are skipped, an `.ungate.bak` is kept, and the result is validated with `node --check` (auto-rollback on failure). Verified against both the 1.1.73 and 1.1.78 function shapes.
+
+Restart the host afterwards — the hook is mounted when the plugin starts.
+
 ### After a DSH upgrade
 
 A host upgrade replaces the whole `Resources/app/dsh/node_modules/@deepseek-ai` tree, so every patch is gone. This repo ships `autoApplyOnStart` on, and the boot path self-heals in this order:

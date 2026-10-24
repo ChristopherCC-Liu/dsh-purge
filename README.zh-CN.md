@@ -180,6 +180,37 @@ cd dsh-purge && node install.mjs
 
 用 `--copy` 装的话，仓库删掉也不影响，插件已在自己 profile 里。
 
+### 区域门禁（本仓库默认关闭）
+
+`lib/net-scope.js` 的 `installRegionGate` 会在插件启动时挂 `agent/pre-step`（1.1.78 还多挂 `tools/pre-execute`）：只要本轮出现攻击词（渗透 / 入侵 / 提权 / webshell / 端口扫描 / pwn…）**且**出现公网主机，就伪造一条 `不行，这是严令禁止的` assistant 消息，再用 `parkDenial` 吞掉整轮。
+
+它拦的不只是“模型开口”：
+
+- 父 agent 下发子任务时，brief 里必然带目标域名和动作词，**子 agent 第一轮就被打死**
+- 子 agent 的收尾消息就是那句拒绝，父 agent 只看到 `finished`，没有任何报错
+- 表现出来是“任务在跑”，实际一个子任务都没执行
+
+本仓库默认不 arm 这一步。判定链路（`isAttackTask` / `isCheatTask` / `publicHostHit` / `taskTargetHit`、`DENIAL` 文案、银行与交易所名单、DNS 解析校验）一行没删。
+
+| 你想要 | 做法 |
+| --- | --- |
+| 默认（不拦） | 什么都不用做 |
+| 恢复上游行为 | `echo '{"regionGate": true}' > "$DSH_HOME/dsh-purge/net-gate.json"`，或启动前 `DSH_PURGE_REGION_GATE=1` |
+| 强制关闭 | `DSH_PURGE_REGION_GATE=0`，优先级最高 |
+
+在**任意版本**的副本上打或撤这个开关：
+
+```sh
+node scripts/ungate.mjs                    # 找本机 profile 里的插件并解除
+node scripts/ungate.mjs --dir <插件目录>    # 指定目录（解压出来的源码也行）
+node scripts/ungate.mjs --check            # 只报告 enabled / armed，不写盘
+node scripts/ungate.mjs --revert           # 撤掉开关，恢复原版行为
+```
+
+脚本幂等：已解除的直接跳过；改前留 `.ungate.bak`；改完跑 `node --check`，语法不过自动回滚。1.1.73 与 1.1.78 两种函数形态都已验证。
+
+改完要**重启宿主**才生效——hook 是插件启动时挂上去的。
+
 ### DSH 升级之后
 
 宿主升级会把 `Resources/app/dsh/node_modules/@deepseek-ai` 整棵换回官方原件，补丁全部丢失。本仓库默认打开 `autoApplyOnStart`，启动时按下面顺序自愈：
