@@ -31,20 +31,26 @@ if (!id) {
 const outDir = resolve(argOf("out", process.cwd()));
 mkdirSync(outDir, { recursive: true });
 
-const shotsSrc = join(root, "engagements", id, "shots");
-const shotsDst = join(outDir, "shots");
-if (existsSync(shotsSrc)) {
-  rmSync(shotsDst, { recursive: true, force: true });
-  cpSync(shotsSrc, shotsDst, { recursive: true });
+/* 证据目录一并搬走：截图给"看到了什么"，runs/ 给"怎么拿到的"（命令回显、原始响应、日志）。
+   只拷 shots 的话，委托方拿到的报告会指向一堆不存在的证据文件。 */
+for (const sub of ["shots", "runs"]) {
+  const src = join(root, "engagements", id, sub);
+  const dst = join(outDir, sub);
+  if (!existsSync(src)) continue;
+  rmSync(dst, { recursive: true, force: true });
+  cpSync(src, dst, { recursive: true });
 }
 
 const rep = store.scoreReport(id, { shotRef: "relative" });
+/* 把证据文件引用里的绝对前缀改成相对路径，和拷过去的 runs/ 对齐。 */
+const fixRefs = (md) => String(md).split(join(root, "engagements", id) + "/").join("");
 const name = String(rep.target || id).replace(/[/\\:*?"<>|]/g, "_");
 const outFile = join(outDir, name + "-红队成果复现报告.md");
-writeFileSync(outFile, rep.markdown, "utf8");
+writeFileSync(outFile, fixRefs(rep.markdown), "utf8");
 store.close();
 
 const imgs = (rep.markdown.match(/!\[[^\]]*\]\([^)]+\)/g) || []).length;
 console.log("✓ 报告：" + outFile);
+const copied = ["shots", "runs"].filter((sub) => existsSync(join(outDir, sub)));
 console.log("  合计 " + rep.summary.points + " 分 · " + rep.items.length + " 条正文 · 嵌入截图 " + imgs + " 张"
-  + (existsSync(shotsDst) ? "（shots/ " + readdirSync(shotsDst).length + " 个文件，随报告一起拷走即可）" : ""));
+  + (copied.length ? "（已附带 " + copied.map((sub) => sub + "/ " + readdirSync(join(outDir, sub)).length + " 个文件").join("、") + "）" : ""));
