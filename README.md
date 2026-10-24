@@ -180,6 +180,28 @@ Nothing is fetched from a package registry, a plugin market, or any third-party 
 
 With `--copy` the plugin lives entirely inside the profile, so the clone can be deleted afterwards.
 
+### After a DSH upgrade
+
+A host upgrade replaces the whole `Resources/app/dsh/node_modules/@deepseek-ai` tree, so every patch is gone. This repo ships `autoApplyOnStart` on, and the boot path self-heals in this order:
+
+1. `patchesMatchInstallStrict()` — version stamp plus a per-patch `pending` check. If both line up, nothing is written.
+2. `hostCleanEnoughToKeep()` — host still clean with no pending: keep patches, refresh the stamp only.
+3. Official-upgrade marker present → upgrade path: `refreshStaleBaksForUpgrade` (refresh stale `.bak` files to the new originals first, so a revert cannot splice new and old code) → `revertAll` → `applyPatchesAllHosts` → restart onto the new build.
+4. Otherwise a plain reapply: writes files only, no asar swap, no process kill, so it cannot trip `INACTIVE_EFFECT`.
+5. On failure it returns `reapply-failed`, leaves the host untouched, and the panel shows `pending`.
+
+Two failure modes it cannot cover:
+
+- **Sealed asar** — `settleMayReapply({surface:"desktop", sealed:true})` returns false. Swapping the package requires clicking Apply and fully quitting.
+- **Reworded text** — anchors are literal, so a rewritten sentence parks that patch at `skipped`. `--status` or the panel shows which ones; update the `pattern` in `lib/core.js`, or scale with dsh-rebase's semantic anchors.
+
+Diagnose:
+
+```sh
+node bin/dsh-purge.js --status
+cat "$DSH_HOME/dsh-purge/applied.json"   # compare version with package.json
+```
+
 ### Update
 
 ```sh

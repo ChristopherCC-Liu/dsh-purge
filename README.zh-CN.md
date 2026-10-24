@@ -180,6 +180,28 @@ cd dsh-purge && node install.mjs
 
 用 `--copy` 装的话，仓库删掉也不影响，插件已在自己 profile 里。
 
+### DSH 升级之后
+
+宿主升级会把 `Resources/app/dsh/node_modules/@deepseek-ai` 整棵换回官方原件，补丁全部丢失。本仓库默认打开 `autoApplyOnStart`，启动时按下面顺序自愈：
+
+1. `patchesMatchInstallStrict()`：版本戳 + 逐补丁 `pending` 实检。都对上就一行不写，直接返回。
+2. `hostCleanEnoughToKeep()`：宿主还干净且无 pending → 保留补丁，只刷新戳。
+3. 官方升级标记存在 → 走 upgrade 专项：`refreshStaleBaksForUpgrade`（先把过期 `.bak` 刷成新宿主原件，避免回滚拼出新旧混码）→ `revertAll` → `applyPatchesAllHosts` → 重启到新构建。
+4. 否则普通 reapply：只写盘，不换 asar、不杀进程，避免撞 `INACTIVE_EFFECT`。
+5. 失败返回 `reapply-failed`，宿主保持原状，面板显示 `pending`。
+
+两种失效它管不到，需要人：
+
+- **密封 asar**：`settleMayReapply({surface:"desktop", sealed:true})` 直接返回 false。要换包只能点面板「应用」并完整退出。
+- **措辞被改写**：锚点是逐字的，DSH 把整句重写后该条会停在 `skipped`。`--status` 或面板能看到是哪几条，改 `lib/core.js` 里对应补丁的 `pattern` 即可；规模化处理用 dsh-rebase 的语义锚点。
+
+排查顺序：
+
+```sh
+node bin/dsh-purge.js --status
+cat "$DSH_HOME/dsh-purge/applied.json"   # version 与当前 package.json 是否一致
+```
+
 ### 更新
 
 ```sh

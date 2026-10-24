@@ -36,7 +36,7 @@
   inject: [systemPrompt, tools]
   config:
     enabled: true
-    autoApplyOnStart: false
+    autoApplyOnStart: true    # DSH 升级后自动重贴；密封 asar 仍需手动「应用」
     autoUpdateOnStart: false
     autoRevertOnMissing: false
     injectOnce: false
